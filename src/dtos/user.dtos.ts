@@ -7,7 +7,7 @@ export const CreateUserDTO = z.object({
     email: z.string().email(),
     password: z.string().min(6),
     role: z.enum(["user", "admin"]).optional(),
-    shoppingPreference: z.enum(["streetwear", "both"]).optional(),
+    shoppingPreference: z.enum(["Mens Fashion", "Female Fashion"]).optional(),
 });
 export type CreateUserDTO = z.infer<typeof CreateUserDTO>;
 

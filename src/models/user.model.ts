@@ -6,7 +6,8 @@ const UserSchema: Schema = new Schema<UserType>(
         email: { type: String, required: true, unique: true },
         password: { type: String, required: true },
         fullName: { type: String, required: true },
-        shoppingPreference: { type: String, enum: ['streetwear', 'both'] },
+        shoppingPreference: { type: String, enum: ['Mens Fashion', 'Female Fashion'] },
+        phoneNumber: { type: String, required: true },
         role: {
             type: String,
             enum: ['user', 'admin'],

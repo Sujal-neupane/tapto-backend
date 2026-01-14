@@ -53,7 +53,8 @@ export class UserService {
             id: user._id,
             email: user.email,
             fullName: user.fullName,
-            role: user.role
+            role: user.role,
+            phoneNumber: user.phoneNumber
         };
 
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
@@ -82,6 +83,7 @@ export class UserService {
             email: user.email,
             role: user.role,
             shoppingPreference: user.shoppingPreference,
+            PhoneNumber: user.phoneNumber,
             createdAt: user.createdAt,
         };
     }
