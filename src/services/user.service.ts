@@ -30,7 +30,19 @@ export class UserService {
 
         // Create user
         const newUser = await this.userRepository.createUser(data);
-        return newUser;
+        
+        // Generate JWT token for new user
+        const payload = {
+            id: newUser._id,
+            email: newUser.email,
+            fullName: newUser.fullName,
+            role: newUser.role,
+            phoneNumber: newUser.phoneNumber,
+            shoppingPreference: newUser.shoppingPreference
+        };
+
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+        return { token, user: payload };
     }
 
     /**
@@ -54,7 +66,8 @@ export class UserService {
             email: user.email,
             fullName: user.fullName,
             role: user.role,
-            phoneNumber: user.phoneNumber
+            phoneNumber: user.phoneNumber,
+            shoppingPreference: user.shoppingPreference
         };
 
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
