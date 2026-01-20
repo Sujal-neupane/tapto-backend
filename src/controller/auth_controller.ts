@@ -16,11 +16,12 @@ export class AuthController {
                 });
             }
             const userData: CreateUserDTO = parsedData.data;
-            const newUser = await userService.createUser(userData);
+            const { token, user } = await userService.createUser(userData);
             return res.status(201).json({
                 success: true,
                 message: 'User Created',
-                data: newUser
+                data: user,
+                token
             });
         } catch (error: Error | any) {
             return res.status(error.statusCode ?? 500).json({
