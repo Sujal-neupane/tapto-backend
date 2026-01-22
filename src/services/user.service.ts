@@ -41,7 +41,7 @@ export class UserService {
             shoppingPreference: newUser.shoppingPreference
         };
 
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
         return { token, user: payload };
     }
 
@@ -70,7 +70,7 @@ export class UserService {
             shoppingPreference: user.shoppingPreference
         };
 
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
         return { token, user: payload };
     }
 
@@ -78,6 +78,9 @@ export class UserService {
      * Get user by ID
      */
     async getUserById(userId: string) {
+        if(!userId){
+            throw new HttpError(400, 'User ID is required');
+        }
         const user = await this.userRepository.getUserById(userId);
         if (!user) {
             throw new HttpError(404, 'User not found');
