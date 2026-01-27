@@ -5,11 +5,15 @@ import { connectDatabase } from './database/mongodb';
 import { PORT, CORS_ORIGIN, NODE_ENV } from './config';
 import authRoutes from './routes/auth.route';
 import cors from 'cors';
+import path from 'path';
+import orderRoutes from './routes/order.route';
+import adminRoutes from './routes/admin.route';
 
 const app: Application = express();
 
 // Security middleware
 app.use(helmet());
+
 
 // CORS configuration
 const corsOptions = {
@@ -21,6 +25,9 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+app.use('/admin', adminRoutes);
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
 // Logging middleware
 app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 
@@ -30,7 +37,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // API Routes
 app.use('/api/auth', authRoutes);
-
+app.use('/api/orders', orderRoutes);
+app.use('/api/admin', adminRoutes);
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
     return res.status(200).json({ 

@@ -2,7 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const PORT: number = 
-    process.env.PORT ? parseInt(process.env.PORT) : 3000;
+    process.env.PORT ? parseInt(process.env.PORT) : 4000;
 export const MONGODB_URI: string = 
     process.env.MONGODB_URI || 'mongodb://localhost:27017/tapto_db';
 
@@ -16,4 +16,4 @@ export const NODE_ENV: string =
     process.env.NODE_ENV || 'development';
 
 export const CORS_ORIGIN: string[] = 
-    process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000', 'http://localhost:4200'];
+    process.env.CORS_ORIGIN?.split(',') || ['http://localhost:4000', 'http://localhost:4200'];

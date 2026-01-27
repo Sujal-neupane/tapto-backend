@@ -13,6 +13,7 @@ const UserSchema: Schema = new Schema<UserType>(
             enum: ['user', 'admin'],
             default: 'user',
         },
+        profilePicture: { type: String }, // Add profile picture path
     },
     {
         timestamps: true,

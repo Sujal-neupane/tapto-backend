@@ -1,106 +1,133 @@
-import { CreateUserDTO, LoginUserDTO } from '../dtos/user.dtos';
-import { UserRepository } from '../repositories/user.repository';
-import bcryptjs from 'bcryptjs';
-import { HttpError } from '../errors/http-error';
+import { UserModel } from '../models/user.model';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from '../config';
-
-const userRepository = new UserRepository();
+import bcrypt from 'bcryptjs';
+import { profile } from 'console';
 
 export class UserService {
-    private userRepository: UserRepository;
-
-    constructor() {
-        this.userRepository = new UserRepository();
+  async createUser(userData: any) {
+    const existingUser = await UserModel.findOne({ email: userData.email });
+    if (existingUser) {
+      throw { statusCode: 400, message: 'Email already registered' };
     }
 
-    /**
-     * Create a new user
-     */
-    async createUser(data: CreateUserDTO) {
-        // Check if email already exists
-        const emailCheck = await this.userRepository.getUserByEmail(data.email);
-        if (emailCheck) {
-            throw new HttpError(403, 'Email already in use');
-        }
+    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    
+    const user = new UserModel({
+      email: userData.email,
+      password: hashedPassword,
+      fullName: userData.fullName,
+      shoppingPreference: userData.shoppingPreference,
+      phoneNumber: userData.phoneNumber,
+      role: userData.role || 'user', // Default to 'user'
+      profilePicture: userData.profilePicture || '', // ADD PROFILE PICTURE
+    });
 
-        // Hash password
-        const hashedPassword = await bcryptjs.hash(data.password, 10);
-        data.password = hashedPassword;
+    await user.save();
 
-        // Create user
-        const newUser = await this.userRepository.createUser(data);
-        
-        // Generate JWT token for new user
-        const payload = {
-            id: newUser._id,
-            email: newUser.email,
-            fullName: newUser.fullName,
-            role: newUser.role,
-            phoneNumber: newUser.phoneNumber,
-            shoppingPreference: newUser.shoppingPreference
-        };
+    // ✅ Include role in JWT token
+    const token = jwt.sign(
+      { 
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role //  ADD ROLE TO TOKEN
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '30d' }
+    );
 
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
-        return { token, user: payload };
+    return {
+      token,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        fullName: user.fullName,
+        shoppingPreference: user.shoppingPreference,
+        phoneNumber: user.phoneNumber,
+        role: user.role, //  RETURN ROLE
+        isAdmin: user.role === 'admin', //  ADD isAdmin FLAG
+        profilePicture: user.profilePicture, // ADD PROFILE PICTURE
+      },
+    };
+  }
+
+  async loginUser(loginData: any) {
+    const user = await UserModel.findOne({ email: loginData.email });
+    if (!user) {
+      throw { statusCode: 401, message: 'Invalid credentials' };
     }
 
-    /**
-     * Login user and generate JWT token
-     */
-    async loginUser(data: LoginUserDTO) {
-        const user = await this.userRepository.getUserByEmail(data.email);
-        if (!user) {
-            throw new HttpError(404, 'User not found');
-        }
-
-        // Compare password
-        const validPassword = await bcryptjs.compare(data.password, user.password);
-        if (!validPassword) {
-            throw new HttpError(401, 'Invalid credentials');
-        }
-
-        // Generate JWT
-        const payload = {
-            id: user._id,
-            email: user.email,
-            fullName: user.fullName,
-            role: user.role,
-            phoneNumber: user.phoneNumber,
-            shoppingPreference: user.shoppingPreference
-        };
-
-        const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
-        return { token, user: payload };
+    const isValidPassword = await bcrypt.compare(
+      loginData.password,
+      user.password
+    );
+    if (!isValidPassword) {
+      throw { statusCode: 401, message: 'Invalid credentials' };
     }
 
-    /**
-     * Get user by ID
-     */
-    async getUserById(userId: string) {
-        if(!userId){
-            throw new HttpError(400, 'User ID is required');
-        }
-        const user = await this.userRepository.getUserById(userId);
-        if (!user) {
-            throw new HttpError(404, 'User not found');
-        }
+    // ✅ Include role in JWT token
+    const token = jwt.sign(
+      { 
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role // ✅ ADD ROLE TO TOKEN
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '30d' }
+    );
 
-        return this.formatUserResponse(user);
+    return {
+      token,
+      user: {
+        id: user._id.toString(),
+        email: user.email,
+        fullName: user.fullName,
+        shoppingPreference: user.shoppingPreference,
+        phoneNumber: user.phoneNumber,
+        role: user.role, //  RETURN ROLE
+        isAdmin: user.role === 'admin', //  ADD isAdmin FLAG
+        profilePicture: user.profilePicture, // ADD PROFILE PICTURE
+      },
+    };
+  }
+
+  async getUserById(userId: string) {
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw { statusCode: 404, message: 'User not found' };
     }
 
-    /**
-     * Format user response (exclude sensitive data)
-     */
-    private formatUserResponse(user: any) {
-        return {
-            _id: user._id.toString(),
-            fullName: user.fullName,
-            email: user.email,
-            role: user.role,
-            shoppingPreference: user.shoppingPreference,
-            PhoneNumber: user.phoneNumber,
-            createdAt: user.createdAt,
-        };
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      fullName: user.fullName,
+      shoppingPreference: user.shoppingPreference,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+      isAdmin: user.role === 'admin',
+      profilePicture: user.profilePicture, // ADD PROFILE PICTURE
+    };
+  }
+
+  async updateUser(userId: string, updateData: any) {
+    const user = await UserModel.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!user) {
+      throw { statusCode: 404, message: 'User not found' };
     }
+
+    return {
+      id: user._id.toString(),
+      email: user.email,
+      fullName: user.fullName,
+      shoppingPreference: user.shoppingPreference,
+      phoneNumber: user.phoneNumber,
+      role: user.role,
+      isAdmin: user.role === 'admin',
+      profilePicture: user.profilePicture, // ADD PROFILE PICTURE
+    };
+  }
 }
