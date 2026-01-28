@@ -24,7 +24,7 @@ export class UserService {
 
     await user.save();
 
-    // ✅ Include role in JWT token
+    //  Include role in JWT token
     const token = jwt.sign(
       { 
         id: user._id.toString(),
@@ -64,12 +64,12 @@ export class UserService {
       throw { statusCode: 401, message: 'Invalid credentials' };
     }
 
-    // ✅ Include role in JWT token
+    //  Include role in JWT token
     const token = jwt.sign(
       { 
         id: user._id.toString(),
         email: user.email,
-        role: user.role // ✅ ADD ROLE TO TOKEN
+        role: user.role //  ADD ROLE TO TOKEN
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '30d' }
