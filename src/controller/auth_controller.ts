@@ -141,4 +141,28 @@ export class AuthController {
                 )
             }
         }
+
+        // PUT /api/auth/:id (with Multer)
+        async updateUserById(req: Request, res: Response) {
+            try {
+                const userId = req.params.id;
+                let updateData: any = req.body;
+                if (req.file) {
+                    updateData.profilePicture = `/uploads/${req.file.filename}`;
+                }
+                // Remove undefined fields
+                Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+                const updatedUser = await userService.updateUser(userId, updateData);
+                return res.status(200).json({
+                    success: true,
+                    message: 'User updated successfully',
+                    data: updatedUser
+                });
+            } catch (error: Error | any) {
+                return res.status(error.statusCode ?? 500).json({
+                    success: false,
+                    message: error.message || 'Internal Server Error'
+                });
+            }
+        }
 }

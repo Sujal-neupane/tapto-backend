@@ -16,4 +16,8 @@ export const NODE_ENV: string =
     process.env.NODE_ENV || 'development';
 
 export const CORS_ORIGIN: string[] = 
-    process.env.CORS_ORIGIN?.split(',') || ['http://localhost:4000', 'http://localhost:4200'];
+    process.env.CORS_ORIGIN?.split(',') || [
+        'http://localhost:3000', // Next.js dev
+        'http://localhost:4000', // Backend origin (for tools/static)
+        'http://localhost:4200'  // Angular dev (if used)
+    ];

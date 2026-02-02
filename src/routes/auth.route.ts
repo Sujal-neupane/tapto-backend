@@ -12,7 +12,10 @@ router.post('/login', authController.login);
 
 router.put('/update-profile', authenticateToken, authController.updateUser);
 
+// Update user by ID with Multer (for admin or self)
+router.put('/:id', authenticateToken, uploads.single('profilePicture'), authController.updateUserById);
+
 // Profile picture upload route
 router.post('/upload-profile-picture', authenticateToken, uploads.single('profilePicture'), authController.uploadProfilePicture);
 
-export default router;
+export default router; 

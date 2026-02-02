@@ -10,9 +10,12 @@ export const getDashboardStats = async (req: Request, res: Response) => {
     const totalUsers = await UserModel.countDocuments();
     const totalProducts = await Product.countDocuments();
     
-    // Calculate revenue
-    const orders = await Order.find({ status: 'delivered' });
-    const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+    // Calculate revenue from delivered orders
+    const deliveredOrders = await Order.find({ status: 'delivered' });
+    const totalRevenue = deliveredOrders.reduce((sum, order) => sum + order.total, 0);
+    
+    // Completed orders count
+    const completedOrders = deliveredOrders.length;
     
     // Today's revenue
     const today = new Date();
@@ -71,6 +74,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         totalRevenue,
         todayRevenue,
         pendingOrders,
+        completedOrders,
         lowStockProducts,
         recentOrders,
         monthlySales,
@@ -101,3 +105,81 @@ export const getAllUsers = async (req: Request, res: Response) => {
     });
   }
 };
+
+  // Create user (admin)
+  export const createUser = async (req: Request, res: Response) => {
+    try {
+      const { fullName, email, password, shoppingPreference, phoneNumber, role } = req.body;
+      let profilePicture = '';
+      if (req.file) {
+        profilePicture = req.file.path;
+      }
+      // Check if user exists
+      const existingUser = await UserModel.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: 'Email already registered' });
+      }
+      // Hash password
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = new UserModel({
+        fullName,
+        email,
+        password: hashedPassword,
+        shoppingPreference,
+        phoneNumber,
+        role: role || 'user',
+        profilePicture,
+      });
+      await user.save();
+      res.status(201).json({ success: true, message: 'User created', data: user });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  // Get user by ID (admin)
+  export const getUserById = async (req: Request, res: Response) => {
+    try {
+      const user = await UserModel.findById(req.params.id).select('-password');
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+      res.json({ success: true, data: user });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  // Update user (admin)
+  export const updateUser = async (req: Request, res: Response) => {
+    try {
+      const { fullName, email, shoppingPreference, phoneNumber, role } = req.body;
+      let updateData: any = { fullName, email, shoppingPreference, phoneNumber, role };
+      if (req.file) {
+        updateData.profilePicture = req.file.path;
+      }
+      // Remove undefined fields
+      Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+      const user = await UserModel.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-password');
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+      res.json({ success: true, message: 'User updated', data: user });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
+  // Delete user (admin)
+  export const deleteUser = async (req: Request, res: Response) => {
+    try {
+      const user = await UserModel.findByIdAndDelete(req.params.id);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+      res.json({ success: true, message: 'User deleted' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };

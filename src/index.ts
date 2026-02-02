@@ -8,8 +8,11 @@ import cors from 'cors';
 import path from 'path';
 import orderRoutes from './routes/order.route';
 import adminRoutes from './routes/admin.route';
+import productRoutes from './routes/product.route';
+import cookieParser from 'cookie-parser';
 
 const app: Application = express();
+
 
 // Security middleware
 app.use(helmet());
@@ -25,19 +28,29 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-app.use('/admin', adminRoutes);
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Handle CORS preflight across all routes
+app.options('*', cors(corsOptions));
+
+// Parse cookies for JWT in cookie-based auth
+app.use(cookieParser());
 
 // Logging middleware
 app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// Body parser middleware
+// Body parser middleware - MUST be before routes
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Static files
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+// Routes
+app.use('/admin', adminRoutes);
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/products', productRoutes);
 app.use('/api/admin', adminRoutes);
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {

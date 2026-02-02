@@ -9,7 +9,13 @@ export const adminAuth = async (
 ) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    let token = authHeader && authHeader.split(' ')[1];
+
+    // Fallback: allow cookie-based JWT for web clients
+    if (!token) {
+      const cookieToken = (req as any).cookies?.authToken;
+      if (cookieToken) token = cookieToken;
+    }
 
     if (!token) {
       return res.status(401).json({

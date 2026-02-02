@@ -27,6 +27,7 @@ export const addProduct = async (req: Request, res: Response) => {
       description,
       price,
       category,
+      subcategory,
       stock,
       discount,
       tags,
@@ -42,7 +43,8 @@ export const addProduct = async (req: Request, res: Response) => {
       description,
       price,
       images,
-      category,
+      category, // Men or Women
+      subcategory, // T-Shirts, Jeans, etc.
       stock,
       isActive: true,
       sizes: sizes || [],
@@ -60,6 +62,7 @@ export const addProduct = async (req: Request, res: Response) => {
       data: product,
     });
   } catch (error: any) {
+    console.error('Add product error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to add product',
