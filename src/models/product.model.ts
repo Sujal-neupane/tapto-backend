@@ -6,11 +6,12 @@ export interface IProduct extends Document {
   description: string;
   price: number;
   images: string[];
-  category: string;
+  category: string; // Men or Women - for filtering by user preference
+  subcategory?: string; // T-Shirts, Jeans, etc.
   stock: number;
   isActive: boolean;
   discount?: number;
-  size: string[];
+  sizes: string[];
   colors: string[];
   tags: string[];
   createdBy: string; // Admin user ID
@@ -24,7 +25,8 @@ const ProductSchema = new Schema(
     description: { type: String, required: true },
     price: { type: Number, required: true },
     images: [{ type: String }],
-    category: { type: String, required: true },
+    category: { type: String, required: true }, // Men or Women
+    subcategory: { type: String }, // T-Shirts, Jeans, etc.
     stock: { type: Number, required: true, default: 0 },
     isActive: { type: Boolean, default: true },
     discount: { type: Number, default: 0 },

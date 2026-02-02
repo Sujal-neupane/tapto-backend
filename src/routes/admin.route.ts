@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { adminAuth } from '../middlewares/adminAuth';
+import { uploadsUser } from '../middlewares/upload.midleware';
 import * as adminController from '../controller/admin/admin_controller';
 import {
   getDashboardStats,
@@ -53,6 +54,12 @@ const upload = multer({
     }
   },
 });
+
+// Admin user CRUD endpoints
+router.post('/users', uploadsUser.single('profilePicture'), adminController.createUser);
+router.get('/users/:id', adminController.getUserById);
+router.put('/users/:id', uploadsUser.single('profilePicture'), adminController.updateUser);
+router.delete('/users/:id', adminController.deleteUser);
 
 router.get('/products', getAllProducts);
 router.post('/products', upload.array('images', 5), addProduct);

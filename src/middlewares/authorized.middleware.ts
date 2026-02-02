@@ -16,7 +16,13 @@ export const authenticateToken = (
   next: NextFunction
 ) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  let token = authHeader && authHeader.split(' ')[1];
+
+  // Fallback: read JWT from cookie for web clients
+  if (!token) {
+    const cookieToken = (req as any).cookies?.authToken;
+    if (cookieToken) token = cookieToken;
+  }
 
   if (!token) {
     return errorResponse(res, 'Access token required', 401);

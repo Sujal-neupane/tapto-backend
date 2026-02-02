@@ -9,7 +9,13 @@ export const adminAuth = async (
 ) => {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    let token = authHeader && authHeader.split(' ')[1];
+
+    // Fallback: allow cookie-based JWT for web clients
+    if (!token) {
+      const cookieToken = (req as any).cookies?.authToken;
+      if (cookieToken) token = cookieToken;
+    }
 
     if (!token) {
       return res.status(401).json({
@@ -18,7 +24,7 @@ export const adminAuth = async (
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret') as any;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
     const user = await UserModel.findById(decoded.id);
 
     // FIX: Check role, not isAdmin
