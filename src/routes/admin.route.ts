@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import { adminAuth } from '../middlewares/adminAuth';
+import { uploadsUser } from '../middlewares/upload.midleware';
 import * as adminController from '../controller/admin/admin_controller';
 import {
   getDashboardStats,
@@ -54,36 +55,10 @@ const upload = multer({
   },
 });
 
-// Multer config for user images
-const userStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/users/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'user-' + uniqueSuffix + path.extname(file.originalname));
-  },
-});
-
-const userUpload = multer({
-  storage: userStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-    if (extname && mimetype) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only images are allowed'));
-    }
-  },
-});
-
 // Admin user CRUD endpoints
-router.post('/users', userUpload.single('profilePicture'), adminController.createUser);
+router.post('/users', uploadsUser.single('profilePicture'), adminController.createUser);
 router.get('/users/:id', adminController.getUserById);
-router.put('/users/:id', userUpload.single('profilePicture'), adminController.updateUser);
+router.put('/users/:id', uploadsUser.single('profilePicture'), adminController.updateUser);
 router.delete('/users/:id', adminController.deleteUser);
 
 router.get('/products', getAllProducts);

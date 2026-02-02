@@ -41,7 +41,6 @@ app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Static files
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Routes

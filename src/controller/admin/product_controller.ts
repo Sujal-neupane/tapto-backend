@@ -74,13 +74,74 @@ export const addProduct = async (req: Request, res: Response) => {
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
-    const updateData = req.body;
+    const { existingImages, imagesToRemove, ...updateData } = req.body;
 
-    // Handle new images if uploaded
+    // Get current product to handle images properly
+    const currentProduct = await Product.findById(productId);
+    if (!currentProduct) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      });
+    }
+
+    // Handle images: keep existing, remove specified, add new
+    let finalImages: string[] = [];
+    
+    // Parse existing images (may come as JSON string or array)
+    let existingImagesArray: string[] = [];
+    if (existingImages) {
+      try {
+        existingImagesArray = typeof existingImages === 'string' 
+          ? JSON.parse(existingImages) 
+          : existingImages;
+      } catch {
+        existingImagesArray = Array.isArray(existingImages) ? existingImages : [];
+      }
+    }
+
+    // Parse images to remove
+    let removeArray: string[] = [];
+    if (imagesToRemove) {
+      try {
+        removeArray = typeof imagesToRemove === 'string'
+          ? JSON.parse(imagesToRemove)
+          : imagesToRemove;
+      } catch {
+        removeArray = Array.isArray(imagesToRemove) ? imagesToRemove : [];
+      }
+    }
+
+    // Filter out removed images from existing
+    finalImages = existingImagesArray.filter(img => !removeArray.includes(img));
+
+    // Add new uploaded images
     if (req.files && (req.files as any[]).length > 0) {
-      updateData.images = (req.files as any[]).map(
+      const newImages = (req.files as any[]).map(
         file => `/uploads/products/${file.filename}`
       );
+      finalImages = [...finalImages, ...newImages];
+    }
+
+    // Only update images if we have some or if explicitly clearing
+    if (finalImages.length > 0 || existingImages !== undefined) {
+      updateData.images = finalImages;
+    }
+
+    // Parse sizes and colors if they come as strings
+    if (updateData.sizes && typeof updateData.sizes === 'string') {
+      try {
+        updateData.sizes = JSON.parse(updateData.sizes);
+      } catch {
+        updateData.sizes = updateData.sizes.split(',').map((s: string) => s.trim()).filter(Boolean);
+      }
+    }
+    if (updateData.colors && typeof updateData.colors === 'string') {
+      try {
+        updateData.colors = JSON.parse(updateData.colors);
+      } catch {
+        updateData.colors = updateData.colors.split(',').map((c: string) => c.trim()).filter(Boolean);
+      }
     }
 
     const product = await Product.findByIdAndUpdate(
@@ -89,19 +150,13 @@ export const updateProduct = async (req: Request, res: Response) => {
       { new: true }
     );
 
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
-    }
-
     res.json({
       success: true,
       message: 'Product updated successfully',
       data: product,
     });
   } catch (error: any) {
+    console.error('Update product error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update product',
