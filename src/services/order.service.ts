@@ -1,17 +1,37 @@
 import Order, {IOrder, IOrderItem, ITracking} from '../models/order.model';
+import Product from '../models/product.model';
 
 export class OrderService {
     async createOrder(data: {
     userId: string;
-    items: IOrderItem[];
-    addressId: string;
-    paymentMethodId: string;
-    shippingAddress: any;
-    paymentMethod: any;
+    items: Partial<IOrderItem>[];
+    addressId?: string;
+    paymentMethodId?: string;
+    shippingAddress?: any;
+    paymentMethod?: any;
   }): Promise<IOrder> {
+    // Populate item details from products
+    const populatedItems: IOrderItem[] = [];
+    for (const item of data.items) {
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        throw new Error(`Product ${item.productId} not found`);
+      }
+
+      populatedItems.push({
+        productId: item.productId!,
+        productName: product.name,
+        productImage: product.images?.[0] || '',
+        quantity: item.quantity!,
+        price: product.price,
+        size: item.size,
+        color: item.color,
+      });
+    }
+
     // Calculate totals
-    const subtotal = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const shippingFee = 10;
+    const subtotal = populatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const shippingFee = subtotal > 50 ? 0 : 10; // Free shipping over $50
     const tax = subtotal * 0.13; // 13% tax
     const total = subtotal + shippingFee + tax;
 
@@ -21,9 +41,9 @@ export class OrderService {
     // Create order
     const order = new Order({
       userId: data.userId,
-      items: data.items,
-      shippingAddress: data.shippingAddress,
-      paymentMethod: data.paymentMethod,
+      items: populatedItems,
+      shippingAddress: data.shippingAddress || data.addressId,
+      paymentMethod: data.paymentMethod || data.paymentMethodId,
       subtotal,
       shippingFee,
       tax,
