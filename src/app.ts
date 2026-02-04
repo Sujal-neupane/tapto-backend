@@ -10,6 +10,7 @@ import productRoutes from './routes/product.route';
 import cookieParser from 'cookie-parser';
 // Admin routes for product and order management
 // Product routes for CRUD operations
+// Order routes for order processing
 import { CORS_ORIGIN, NODE_ENV } from './config';
 
 
