@@ -5,7 +5,8 @@ export const getAllOrders = async (req: Request, res: Response) => {
   try {
     const orders = await Order.find()
       .sort({ createdAt: -1 })
-      .populate('userId', 'name email');
+      .populate('userId', 'name email')
+      .populate('items.productId', 'name price images');
     
     res.json({
       success: true,
@@ -47,6 +48,8 @@ export const getOrderById = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
     const { status } = req.body;
