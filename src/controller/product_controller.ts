@@ -27,9 +27,9 @@ export const getProducts = async (req: Request, res: Response) => {
     // Build filter object
     const filter: any = { isActive: true };
 
-    // Filter by category (fashion type)
+    // Filter by category (fashion type) - exact match
     if (category) {
-      filter.category = { $regex: new RegExp(category as string, 'i') };
+      filter.category = category;
     }
 
     // Search in name and description
