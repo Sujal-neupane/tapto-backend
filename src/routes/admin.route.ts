@@ -17,6 +17,7 @@ import {
 import {
   getAllOrders,
   updateOrderStatus,
+  getOrderById,
 } from '../controller/admin/order_management_controller';
 const router = Router();
 
@@ -68,6 +69,7 @@ router.delete('/products/:productId', deleteProduct);
 
 // Orders
 router.get('/orders', getAllOrders);
+router.get('/orders/:orderId', getOrderById);
 router.patch('/orders/:orderId/status', updateOrderStatus);
 
 export default router;

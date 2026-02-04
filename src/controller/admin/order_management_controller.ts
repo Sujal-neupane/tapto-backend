@@ -20,7 +20,33 @@ export const getAllOrders = async (req: Request, res: Response) => {
   }
 };
 
-export const updateOrderStatus = async (req: Request, res: Response) => {
+export const getOrderById = async (req: Request, res: Response) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findById(orderId)
+      .populate('userId', 'name email')
+      .populate('items.productId', 'name price images');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: order,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order',
+      error: error.message,
+    });
+  }
+};
   try {
     const { orderId } = req.params;
     const { status } = req.body;
