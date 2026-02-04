@@ -6,6 +6,8 @@ import { uploadsUser } from '../middlewares/upload.midleware';
 
 const authController = new AuthController();
 const router = Router();
+router.post("/request-password-reset", authController.sendResetPasswordEmail);
+router.post("/reset-password/:token", authController.resetPassword);
 
 router.post('/register', authController.register);
 router.post('/login', authController.login);
