@@ -7,10 +7,12 @@ import * as adminController from '../controller/admin/admin_controller';
 import {
   getDashboardStats,
   getAllUsers,
-  getUserActivities,
-  getAllActivities,
-  getActivityStats,
 } from '../controller/admin/admin_controller';
+import {
+  getAllActivities,
+  getUserActivities,
+  getActivityStats,
+} from '../controller/admin/activity_controller';
 import {
   getAllProducts,
   addProduct,
