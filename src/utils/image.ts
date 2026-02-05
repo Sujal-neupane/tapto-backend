@@ -30,20 +30,27 @@ export const normalizeUploadedImage = async (file: Express.Multer.File) => {
     return file;
   }
 
-  const outputPath = file.path.replace(path.extname(file.path), '.jpg');
-  console.log("Converting image:", { from: file.path, to: outputPath });
-  
-  await sharp(file.path)
-    .jpeg({ quality: 85 })
-    .toFile(outputPath);
+  try {
+    const outputPath = file.path.replace(path.extname(file.path), '.jpg');
+    console.log("Converting image:", { from: file.path, to: outputPath });
 
-  await fs.unlink(file.path);
-  console.log("Image converted successfully");
+    await sharp(file.path)
+      .jpeg({ quality: 85 })
+      .toFile(outputPath);
 
-  return {
-    ...file,
-    path: outputPath,
-    filename: path.basename(outputPath),
-    mimetype: 'image/jpeg',
-  };
+    await fs.unlink(file.path);
+    console.log("Image converted successfully");
+
+    return {
+      ...file,
+      path: outputPath,
+      filename: path.basename(outputPath),
+      mimetype: 'image/jpeg',
+    };
+  } catch (error) {
+    console.error("❌ Image conversion failed:", error);
+    // If conversion fails, return the original file
+    console.log("⚠️ Returning original file due to conversion failure");
+    return file;
+  }
 };
