@@ -9,6 +9,7 @@ export const CreateUserDTO = z.object({
     role: z.enum(["user", "admin"]).optional(),
     shoppingPreference: z.enum(["Mens Fashion", "Womens Fashion"]).optional(),
     phoneNumber: z.string().optional(),
+    country: z.string().optional(),
 });
 export type CreateUserDTO = z.infer<typeof CreateUserDTO>;
 

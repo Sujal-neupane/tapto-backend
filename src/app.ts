@@ -8,10 +8,7 @@ import orderRoutes from './routes/order.route';
 import adminRoutes from './routes/admin.route';
 import productRoutes from './routes/product.route';
 import cookieParser from 'cookie-parser';
-// Admin routes for product and order management
-// Product routes for CRUD operations
-// Order routes for order processing
-// Authentication routes for user management
+
 import { CORS_ORIGIN, NODE_ENV } from './config';
 
 
@@ -51,7 +48,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Routes
-app.use('/admin', adminRoutes);
+// app.use('/admin', adminRoutes); // Removed duplicate mounting
 
 // API Routes
 app.use('/api/auth', authRoutes);

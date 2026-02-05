@@ -38,6 +38,11 @@ export const addProduct = async (req: Request, res: Response) => {
     // Handle images from upload
     const images = (req.files as any[])?.map(file => `/uploads/products/${file.filename}`) || [];
 
+    // Parse comma-separated values
+    const parsedSizes = sizes ? (typeof sizes === 'string' ? sizes.split(',').map(s => s.trim()) : sizes) : [];
+    const parsedColors = colors ? (typeof colors === 'string' ? colors.split(',').map(c => c.trim()) : colors) : [];
+    const parsedTags = tags ? (typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags) : [];
+
     const product = new Product({
       name,
       description,
@@ -47,10 +52,10 @@ export const addProduct = async (req: Request, res: Response) => {
       subcategory, // T-Shirts, Jeans, etc.
       stock,
       isActive: true,
-      sizes: sizes || [],
-      colors: colors || [],
+      sizes: parsedSizes,
+      colors: parsedColors,
       discount: discount || 0,
-      tags: tags || [],
+      tags: parsedTags,
       createdBy: userId,
     });
 

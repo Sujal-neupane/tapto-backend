@@ -32,7 +32,8 @@ export class OrderService {
     // Calculate totals
     const subtotal = populatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shippingFee = subtotal > 50 ? 0 : 10; // Free shipping over $50
-    const tax = subtotal * 0.13; // 13% tax
+    const taxRate = this.getTaxRate(data.shippingAddress?.country || 'United States');
+    const tax = subtotal * taxRate;
     const total = subtotal + shippingFee + tax;
 
     // Generate tracking number
@@ -214,6 +215,19 @@ export class OrderService {
     const year = new Date().getFullYear();
     const random = Math.random().toString(36).substring(2, 11).toUpperCase();
     return `${prefix}-${year}-${random}`;
+  }
+
+  private getTaxRate(country: string): number {
+    switch (country?.toLowerCase()) {
+      case 'united states':
+        return 0.08; // 8% tax
+      case 'india':
+        return 0.18; // 18% GST
+      case 'nepal':
+        return 0.13; // 13% VAT
+      default:
+        return 0.08; // Default 8%
+    }
   }
 }
 
