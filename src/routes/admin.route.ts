@@ -7,6 +7,9 @@ import * as adminController from '../controller/admin/admin_controller';
 import {
   getDashboardStats,
   getAllUsers,
+  getUserActivities,
+  getAllActivities,
+  getActivityStats,
 } from '../controller/admin/admin_controller';
 import {
   getAllProducts,
@@ -28,6 +31,11 @@ router.get('/dashboard/stats', getDashboardStats);
 
 // Users
 router.get('/users', getAllUsers);
+
+// User Activities
+router.get('/activities', getAllActivities);
+router.get('/activities/stats', getActivityStats);
+router.get('/users/:userId/activities', getUserActivities);
 
 // Products
 const storage = multer.diskStorage({
