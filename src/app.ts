@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.route';
 import cors from 'cors';
 import path from 'path';
 import orderRoutes from './routes/order.route';
+import deliveryDriverRoutes from './routes/delivery_driver.route';
 import adminRoutes from './routes/admin.route';
 import productRoutes from './routes/product.route';
 import cookieParser from 'cookie-parser';
@@ -53,6 +54,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/drivers', deliveryDriverRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/admin', adminRoutes);
 // Health check endpoint
