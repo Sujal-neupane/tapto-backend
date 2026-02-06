@@ -24,7 +24,15 @@ import {
   updateOrderStatus,
   getOrderById,
 } from '../controller/admin/order_management_controller';
+
+
+// ...existing code...
+
 const router = Router();
+import { assignDriverToOrder } from '../controller/admin/driver_assignment_controller';
+
+// Assign a delivery driver to an order
+router.patch('/orders/:orderId/assign-driver', assignDriverToOrder);
 
 // All admin routes require admin authentication
 router.use(adminAuth);
