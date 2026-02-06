@@ -50,6 +50,8 @@ export interface IOrder extends Document {
     phone: string;
     vehicle: string;
     rating: number;
+    driverId?: string; // Reference to DeliveryDriver _id
+    avatarUrl?: string;
   };
   liveLocation?: {
     lat: number;
@@ -115,6 +117,8 @@ const OrderSchema = new Schema(
       phone: { type: String },
       vehicle: { type: String },
       rating: { type: Number },
+      driverId: { type: Schema.Types.ObjectId, ref: 'DeliveryDriver' },
+      avatarUrl: { type: String },
     },
     liveLocation: {
       lat: { type: Number },
