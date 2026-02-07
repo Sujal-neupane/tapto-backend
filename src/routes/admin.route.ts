@@ -9,6 +9,11 @@ import {
   getAllUsers,
 } from '../controller/admin/admin_controller';
 import {
+  getAllActivities,
+  getUserActivities,
+  getActivityStats,
+} from '../controller/admin/activity_controller';
+import {
   getAllProducts,
   addProduct,
   updateProduct,
@@ -17,8 +22,17 @@ import {
 import {
   getAllOrders,
   updateOrderStatus,
+  getOrderById,
 } from '../controller/admin/order_management_controller';
+
+
+// ...existing code...
+
 const router = Router();
+import { assignDriverToOrder } from '../controller/admin/driver_assignment_controller';
+
+// Assign a delivery driver to an order
+router.patch('/orders/:orderId/assign-driver', assignDriverToOrder);
 
 // All admin routes require admin authentication
 router.use(adminAuth);
@@ -27,6 +41,11 @@ router.get('/dashboard/stats', getDashboardStats);
 
 // Users
 router.get('/users', getAllUsers);
+
+// User Activities
+router.get('/activities', getAllActivities);
+router.get('/activities/stats', getActivityStats);
+router.get('/users/:userId/activities', getUserActivities);
 
 // Products
 const storage = multer.diskStorage({
@@ -68,6 +87,7 @@ router.delete('/products/:productId', deleteProduct);
 
 // Orders
 router.get('/orders', getAllOrders);
+router.get('/orders/:orderId', getOrderById);
 router.patch('/orders/:orderId/status', updateOrderStatus);
 
 export default router;

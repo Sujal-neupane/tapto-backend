@@ -9,6 +9,7 @@ export const UserSchema = z.object({
     role: z.enum(['user', 'admin']).default('user'),
     phoneNumber: z.string().optional(),
     profilePicture: z.string().optional(),
+    country: z.string().optional(),
 });
 
 export type UserType = z.infer<typeof UserSchema>;

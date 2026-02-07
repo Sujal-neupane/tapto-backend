@@ -27,9 +27,9 @@ export const getProducts = async (req: Request, res: Response) => {
     // Build filter object
     const filter: any = { isActive: true };
 
-    // Filter by category (fashion type)
+    // Filter by category (fashion type) - exact match
     if (category) {
-      filter.category = { $regex: new RegExp(category as string, 'i') };
+      filter.category = category;
     }
 
     // Search in name and description
@@ -156,6 +156,52 @@ export const getCategories = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch categories',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Get personalized product recommendations based on user preferences
+ */
+export const getPersonalizedProducts = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user?.id;
+    const { limit = 20 } = req.query;
+
+    let categoryFilter = {};
+
+    // If user is authenticated, filter by their shopping preference
+    if (userId) {
+      const User = require('../models/user.model').UserModel;
+      const user = await User.findById(userId);
+
+      if (user && user.shoppingPreference) {
+        // Map user preference to product category
+        if (user.shoppingPreference === 'Mens Fashion') {
+          categoryFilter = { category: 'Men' };
+        } else if (user.shoppingPreference === 'Womens Fashion') {
+          categoryFilter = { category: 'Women' };
+        }
+      }
+    }
+
+    const products = await Product.find({
+      ...categoryFilter,
+      isActive: true,
+    })
+      .sort({ createdAt: -1 })
+      .limit(Number(limit))
+      .lean();
+
+    res.json({
+      success: true,
+      data: products,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch personalized products',
       error: error.message,
     });
   }

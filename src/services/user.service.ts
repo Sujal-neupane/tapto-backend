@@ -25,6 +25,7 @@ export class UserService {
       phoneNumber: userData.phoneNumber,
       role: userData.role || 'user', // Default to 'user'
       profilePicture: userData.profilePicture || '', // ADD PROFILE PICTURE
+      country: userData.country, // ADD COUNTRY
     });
 
     await user.save();
@@ -51,6 +52,7 @@ export class UserService {
         role: user.role, //  RETURN ROLE
         isAdmin: user.role === 'admin', //  ADD isAdmin FLAG
         profilePicture: user.profilePicture, // ADD PROFILE PICTURE
+        country: user.country, // ADD COUNTRY
       },
     };
   }
@@ -91,6 +93,7 @@ export class UserService {
         role: user.role, //  RETURN ROLE
         isAdmin: user.role === 'admin', //  ADD isAdmin FLAG
         profilePicture: user.profilePicture, // ADD PROFILE PICTURE
+        country: user.country, // ADD COUNTRY
       },
     };
   }
@@ -110,6 +113,7 @@ export class UserService {
       role: user.role,
       isAdmin: user.role === 'admin',
       profilePicture: user.profilePicture, // ADD PROFILE PICTURE
+      country: user.country, // ADD COUNTRY
     };
   }
 
@@ -134,6 +138,7 @@ export class UserService {
       role: user.role,
       isAdmin: user.role === 'admin',
       profilePicture: user.profilePicture, // ADD PROFILE PICTURE
+      country: user.country, // ADD COUNTRY
     };
   }
 
@@ -145,31 +150,37 @@ export class UserService {
         if (!user) {
           throw new HttpError(404, "User not found");
         }
-        const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' }); // 1 hour expiry
-        const resetLink = `${CLIENT_URL}/reset-password?token=${token}`;
-        const html = `<p>Click <a href="${resetLink}">here</a> to reset your password. This link will expire in 1 hour.</p>`;
-        await sendEmail(user.email, "Password Reset", html);
+        const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        user.otp = otp;
+        user.otpExpiry = otpExpiry;
+        await user.save();
+        const html = `<p>Your OTP for password reset is: <strong>${otp}</strong>. This OTP will expire in 10 minutes.</p>`;
+        await sendEmail(user.email, "Password Reset OTP", html);
         return user;
 
     }
 
-    async resetPassword(token?: string, newPassword?: string) {
+    async resetPassword(otp?: string, newPassword?: string, email?: string) {
         try {
-          if (!token || !newPassword) {
-            throw new HttpError(400, "Token and new password are required");
+          if (!otp || !newPassword || !email) {
+            throw new HttpError(400, "OTP, new password, and email are required");
           }
-          const decoded: any = jwt.verify(token, JWT_SECRET);
-          const userId = decoded.id;
-          const user = await UserModel.findById(userId);
+          const user = await UserModel.findOne({ email, otp });
           if (!user) {
-            throw new HttpError(404, "User not found");
+            throw new HttpError(404, "Invalid OTP or email");
+          }
+          if (user.otpExpiry && user.otpExpiry < new Date()) {
+            throw new HttpError(400, "OTP has expired");
           }
           const hashedPassword = await bcrypt.hash(newPassword, 10);
           user.password = hashedPassword;
+          user.otp = undefined; // clear OTP
+          user.otpExpiry = undefined;
           await user.save();
           return user;
         } catch (error) {
-          throw new HttpError(400, "Invalid or expired token");
+          throw new HttpError(400, "Invalid or expired OTP");
         }
     }
 }

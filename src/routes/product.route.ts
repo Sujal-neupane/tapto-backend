@@ -4,7 +4,9 @@ import {
   getProductById,
   getProductsByCategory,
   getCategories,
+  getPersonalizedProducts,
 } from '../controller/product_controller';
+import { authenticateToken } from '../middlewares/authorized.middleware';
 
 const router = Router();
 
@@ -16,6 +18,9 @@ router.get('/', getProducts);
 
 // Get product categories
 router.get('/categories', getCategories);
+
+// Get personalized product recommendations (requires authentication)
+router.get('/personalized', authenticateToken, getPersonalizedProducts);
 
 // Get products by category/fashion type
 // GET /api/products/category/Men

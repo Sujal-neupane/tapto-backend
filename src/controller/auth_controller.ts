@@ -15,24 +15,49 @@ export class AuthController {
     // Upload profile picture
     async uploadProfilePicture(req: Request, res: Response) {
         try {
+            console.log('=== UPLOAD PROFILE PICTURE ===');
             const userId = (req as AuthenticatedRequest).user?.id;
+            console.log('User ID:', userId);
+
             if (!userId) {
+                console.log('❌ No user ID found');
                 return res.status(401).json({ success: false, message: 'Unauthorized' });
             }
+
             if (!req.file) {
+                console.log('❌ No file uploaded');
                 return res.status(400).json({ success: false, message: 'No file uploaded' });
             }
+
+            console.log('📁 File received:', {
+                originalname: req.file.originalname,
+                mimetype: req.file.mimetype,
+                size: req.file.size,
+                path: req.file.path
+            });
+
             const normalizedFile = await normalizeUploadedImage(req.file);
+            console.log('✅ File normalized:', {
+                filename: normalizedFile.filename,
+                path: normalizedFile.path
+            });
+
             // Always use the actual filename saved by multer
             const filePath = `/uploads/users/${normalizedFile.filename}`;
+            console.log('💾 Saving file path to user:', filePath);
+
             // Save file path to user
             const updatedUser = await userService.updateUser(userId, { profilePicture: filePath });
+            console.log('✅ User updated with profile picture');
+
             return res.status(200).json({
                 success: true,
                 message: 'Profile picture uploaded successfully',
                 data: { profilePicture: filePath, user: updatedUser }
             });
         } catch (error: Error | any) {
+            console.error('❌ Upload error:', error);
+            console.error('Stack trace:', error.stack);
             return res.status(error.statusCode ?? 500).json({
                 success: false,
                 message: error.message || 'Internal Server Error'
@@ -212,9 +237,8 @@ export class AuthController {
     async resetPassword(req: Request, res: Response) {
         try {
 
-           const token = req.params.token;
-            const { newPassword } = req.body;
-            await userService.resetPassword(token, newPassword);
+           const { otp, newPassword, email } = req.body;
+            await userService.resetPassword(otp, newPassword, email);
             return res.status(200).json(
                 { success: true, message: "Password has been reset successfully." }
             );
