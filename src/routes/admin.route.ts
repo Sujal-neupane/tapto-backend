@@ -31,11 +31,11 @@ import {
 const router = Router();
 import { assignDriverToOrder } from '../controller/admin/driver_assignment_controller';
 
-// Assign a delivery driver to an order
-router.patch('/orders/:orderId/assign-driver', assignDriverToOrder);
-
 // All admin routes require admin authentication
 router.use(adminAuth);
+
+// Assign a delivery driver to an order
+router.patch('/orders/:orderId/assign-driver', assignDriverToOrder);
 
 router.get('/dashboard/stats', getDashboardStats);
 

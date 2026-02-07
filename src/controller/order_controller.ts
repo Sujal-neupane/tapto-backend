@@ -41,12 +41,25 @@ export const getOrderById = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
     const order = await orderService.getOrderById(orderId);
-
     if (!order) {
       return errorResponse(res, 'Order not found', 404);
     }
-
-    return successResponse(res, order);
+    // Populate delivery driver info if assigned
+    let driverInfo = null;
+    if (order.deliveryPerson && order.deliveryPerson.driverId) {
+      const DeliveryDriver = require('../models/delivery_driver.model').default;
+      const driver = await DeliveryDriver.findById(order.deliveryPerson.driverId);
+      if (driver) {
+        driverInfo = {
+          name: driver.name,
+          phone: driver.phone,
+          vehicle: driver.vehicleNumber,
+          avatarUrl: driver.avatarUrl,
+          email: driver.email,
+        };
+      }
+    }
+    return successResponse(res, { ...order.toObject(), driverInfo });
   } catch (error: any) {
     return errorResponse(res, error.message);
   }
@@ -56,7 +69,22 @@ export const trackOrder = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
     const tracking = await orderService.trackOrder(orderId);
-    return successResponse(res, tracking);
+    // Populate delivery driver info if assigned
+    let driverInfo = null;
+    if (tracking.deliveryPerson && tracking.deliveryPerson.driverId) {
+      const DeliveryDriver = require('../models/delivery_driver.model').default;
+      const driver = await DeliveryDriver.findById(tracking.deliveryPerson.driverId);
+      if (driver) {
+        driverInfo = {
+          name: driver.name,
+          phone: driver.phone,
+          vehicle: driver.vehicleNumber,
+          avatarUrl: driver.avatarUrl,
+          email: driver.email,
+        };
+      }
+    }
+    return successResponse(res, { ...tracking, driverInfo });
   } catch (error: any) {
     return errorResponse(res, error.message);
   }

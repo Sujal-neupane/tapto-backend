@@ -1,5 +1,6 @@
 import Order, {IOrder, IOrderItem, ITracking} from '../models/order.model';
 import Product from '../models/product.model';
+import { AddressModel } from '../models/address.model';
 
 export class OrderService {
     async createOrder(data: {
@@ -29,10 +30,28 @@ export class OrderService {
       });
     }
 
+    // Get shipping address details
+    let finalShippingAddress = data.shippingAddress;
+    if (data.addressId && !data.shippingAddress) {
+      const address = await AddressModel.findById(data.addressId);
+      if (!address) {
+        throw new Error('Shipping address not found');
+      }
+      finalShippingAddress = {
+        fullName: address.fullName,
+        phone: address.phone,
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        zipCode: address.zipCode,
+        country: address.country,
+      };
+    }
+
     // Calculate totals
     const subtotal = populatedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shippingFee = subtotal > 50 ? 0 : 10; // Free shipping over $50
-    const taxRate = this.getTaxRate(data.shippingAddress?.country || 'United States');
+    const taxRate = this.getTaxRate(finalShippingAddress?.country || 'United States');
     const tax = subtotal * taxRate;
     const total = subtotal + shippingFee + tax;
 
@@ -43,7 +62,7 @@ export class OrderService {
     const order = new Order({
       userId: data.userId,
       items: populatedItems,
-      shippingAddress: data.shippingAddress || data.addressId,
+      shippingAddress: finalShippingAddress,
       paymentMethod: data.paymentMethod || data.paymentMethodId,
       subtotal,
       shippingFee,
@@ -130,7 +149,7 @@ export class OrderService {
         rating: 4.8,
       };
 
-      // Set initial location (Kathmandu center)
+      // Set initial location (Kathmandu center, away from Boudha Stupa)
       order.liveLocation = {
         lat: 27.7172,
         lng: 85.324,
@@ -151,9 +170,65 @@ export class OrderService {
     const order = await Order.findById(orderId);
     if (!order) throw new Error('Order not found');
 
-    // Calculate distance and ETA (mock data)
-    const distanceKm = order.status === 'outForDelivery' ? 2.5 : 15;
-    const estimatedMinutes = order.status === 'outForDelivery' ? 15 : 60;
+    // Boudha Stupa coordinates as destination
+    const destinationLat = 27.7215;
+    const destinationLng = 85.3621;
+
+    // Simulate live location updates for outForDelivery orders
+    if (order.status === 'outForDelivery') {
+      if (!order.liveLocation) {
+        // Set initial location (somewhere in Kathmandu, away from Boudha)
+        order.liveLocation = {
+          lat: 27.7172, // Kathmandu center
+          lng: 85.324,
+          lastUpdated: new Date(),
+        };
+      } else {
+        // Simulate movement towards Boudha Stupa
+        const currentLat = order.liveLocation.lat;
+        const currentLng = order.liveLocation.lng;
+        
+        // Calculate direction vector towards destination
+        const deltaLat = destinationLat - currentLat;
+        const deltaLng = destinationLng - currentLng;
+        
+        // Calculate distance
+        const distance = Math.sqrt(deltaLat * deltaLat + deltaLng * deltaLng);
+        
+        if (distance > 0.001) { // If not very close to destination
+          // Move 10% closer each time (simulate gradual movement)
+          const moveFraction = 0.1;
+          const newLat = currentLat + deltaLat * moveFraction;
+          const newLng = currentLng + deltaLng * moveFraction;
+          
+          order.liveLocation = {
+            lat: newLat,
+            lng: newLng,
+            lastUpdated: new Date(),
+          };
+        }
+      }
+      
+      await order.save();
+    }
+
+    // Calculate distance and ETA based on current location
+    let distanceKm = 15; // Default
+    let estimatedMinutes = 60; // Default
+    
+    if (order.liveLocation) {
+      const currentLat = order.liveLocation.lat;
+      const currentLng = order.liveLocation.lng;
+      
+      // Calculate actual distance to destination
+      const deltaLat = destinationLat - currentLat;
+      const deltaLng = destinationLng - currentLng;
+      const distance = Math.sqrt(deltaLat * deltaLat + deltaLng * deltaLng);
+      
+      // Convert to approximate km (rough approximation)
+      distanceKm = distance * 111; // 1 degree ≈ 111 km
+      estimatedMinutes = Math.max(5, Math.round(distanceKm * 20)); // Rough ETA calculation
+    }
 
     return {
       orderId: order._id,
@@ -162,14 +237,14 @@ export class OrderService {
         ? {
             lat: order.liveLocation.lat,
             lng: order.liveLocation.lng,
-            address: 'Near Boudha Stupa, Kathmandu',
+            address: order.status === 'outForDelivery' ? 'Approaching Your Location' : 'Kathmandu',
           }
         : null,
       destination: {
-        lat: 27.7172,
-        lng: 85.324,
+        lat: destinationLat,
+        lng: destinationLng,
       },
-      distanceRemaining: `${distanceKm} km`,
+      distanceRemaining: `${distanceKm.toFixed(1)} km`,
       estimatedTime: `${estimatedMinutes} mins`,
       timeline: order.tracking,
     };
