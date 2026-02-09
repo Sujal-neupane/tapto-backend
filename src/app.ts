@@ -8,6 +8,8 @@ import orderRoutes from './routes/order.route';
 import deliveryDriverRoutes from './routes/delivery_driver.route';
 import adminRoutes from './routes/admin.route';
 import productRoutes from './routes/product.route';
+import addressRoutes from './routes/address.route';
+import cartRoutes from './routes/cart.route';
 import cookieParser from 'cookie-parser';
 
 import { CORS_ORIGIN, NODE_ENV } from './config';
@@ -57,6 +59,8 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/drivers', deliveryDriverRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/addresses', addressRoutes);
+app.use('/api/cart', cartRoutes);
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
     return res.status(200).json({ 

@@ -9,8 +9,9 @@ async function startServer() {
     try {
         await connectDatabase();
         
-        app.listen(PORT, () => {
+        app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server running at http://localhost:${PORT}`);
+            console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
             console.log(`📊 Environment: ${NODE_ENV}`);
         });
     } catch (error) {

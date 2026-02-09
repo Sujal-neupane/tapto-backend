@@ -62,6 +62,14 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       });
     }
 
+    // Validate status transitions
+    if (status === 'outForDelivery' && !order.deliveryPerson) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot set status to outForDelivery without assigning a delivery driver first',
+      });
+    }
+
     order.status = status;
 
     // Add tracking event
