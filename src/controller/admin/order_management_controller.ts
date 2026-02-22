@@ -21,8 +21,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
     if (userId) filter.userId = userId as string;
 
     // Get all orders through service
-    // Note: You may need to add a getAllOrders method to orderService
-    const orders = await orderService.getMyOrders(userId as string || '');
+    const orders = await orderService.getAllOrders(filter);
 
     return successResponse(res, orders);
   } catch (error: any) {

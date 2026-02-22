@@ -34,13 +34,13 @@ export const assignDriverToOrder = async (req: Request, res: Response) => {
       avatarUrl: driver.avatarUrl
     };
 
-    // Assign driver to order
-    order.deliveryPerson = driverData as any;
+    // Assign the driver to the order
+    await orderService.assignDriver(orderId, driverData);
     
-    // Update order status to shipped or outForDelivery
-    await orderService.updateOrderStatus(orderId, 'outForDelivery');
+    // Update order status to outForDelivery
+    const updatedOrder = await orderService.updateOrderStatus(orderId, 'outForDelivery');
 
-    return successResponse(res, order, 'Driver assigned successfully');
+    return successResponse(res, updatedOrder, 'Driver assigned successfully');
   } catch (error: any) {
     return errorResponse(res, error.message);
   }

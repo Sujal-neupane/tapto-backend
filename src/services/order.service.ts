@@ -103,6 +103,10 @@ export class OrderService {
     return this.orderRepository.getOrdersByUserId(userId);
   }
 
+  async getAllOrders(filter?: any): Promise<IOrder[]> {
+    return this.orderRepository.getAllOrders(filter);
+  }
+
   async getOrderById(orderId: string): Promise<IOrder | null> {
     return this.orderRepository.getOrderById(orderId);
   }
@@ -280,6 +284,10 @@ export class OrderService {
 
   async updateLiveLocation(orderId: string, lat: number, lng: number): Promise<IOrder | null> {
     return await this.orderRepository.updateLiveLocation(orderId, { lat, lng });
+  }
+
+  async assignDriver(orderId: string, driverData: any): Promise<IOrder | null> {
+    return await this.orderRepository.assignDriver(orderId, driverData);
   }
 
   private generateTrackingNumber(): string {

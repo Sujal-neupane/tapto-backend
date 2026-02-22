@@ -6,6 +6,7 @@ import productService from '../../services/product.service';
 
 export const getDashboardStats = async (req: Request, res: Response) => {
   try {
+    const db = UserModel.db;
     const [
       totalUsers,
       totalOrders,
@@ -13,9 +14,9 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       pendingOrders
     ] = await Promise.all([
       UserModel.countDocuments(),
-      UserModel.collection.db?.collection('orders').countDocuments() || 0,
-      UserModel.collection.db?.collection('products').countDocuments() || 0,
-      UserModel.collection.db?.collection('orders').countDocuments({ status: 'pending' }) || 0
+      db.collection('orders').countDocuments(),
+      db.collection('products').countDocuments(),
+      db.collection('orders').countDocuments({ status: 'pending' })
     ]);
 
     return successResponse(res, {
