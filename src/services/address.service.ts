@@ -1,6 +1,13 @@
-import { AddressModel, IAddress } from '../models/address.model';
+import { IAddress } from '../models/address.model';
+import { AddressRepository } from '../repositories/address.repository';
 
 export class AddressService {
+  private addressRepository: AddressRepository;
+
+  constructor() {
+    this.addressRepository = new AddressRepository();
+  }
+
   async createAddress(data: {
     userId: string;
     fullName: string;
@@ -12,24 +19,20 @@ export class AddressService {
     country: string;
     isDefault?: boolean;
   }): Promise<IAddress> {
-    // If this is the default address, unset other defaults
-    if (data.isDefault) {
-      await AddressModel.updateMany(
-        { userId: data.userId },
-        { isDefault: false }
-      );
-    }
-
-    const address = new AddressModel(data);
-    return address.save();
+    return await this.addressRepository.createAddress(data as any);
   }
 
   async getUserAddresses(userId: string): Promise<IAddress[]> {
-    return AddressModel.find({ userId }).sort({ isDefault: -1, createdAt: -1 });
+    return await this.addressRepository.getAddressesByUserId(userId);
   }
 
   async getAddressById(addressId: string, userId: string): Promise<IAddress | null> {
-    return AddressModel.findOne({ _id: addressId, userId });
+    const address = await this.addressRepository.getAddressById(addressId);
+    // Verify the address belongs to the user
+    if (address && address.userId.toString() !== userId) {
+      return null;
+    }
+    return address;
   }
 
   async updateAddress(
@@ -46,36 +49,27 @@ export class AddressService {
       isDefault: boolean;
     }>
   ): Promise<IAddress | null> {
-    // If setting as default, unset other defaults
-    if (updates.isDefault) {
-      await AddressModel.updateMany(
-        { userId, _id: { $ne: addressId } },
-        { isDefault: false }
-      );
-    }
+    // Verify ownership first
+    const address = await this.getAddressById(addressId, userId);
+    if (!address) return null;
 
-    return AddressModel.findOneAndUpdate(
-      { _id: addressId, userId },
-      updates,
-      { new: true }
-    );
+    return await this.addressRepository.updateAddress(addressId, updates);
   }
 
   async deleteAddress(addressId: string, userId: string): Promise<boolean> {
-    const result = await AddressModel.findOneAndDelete({ _id: addressId, userId });
-    return result !== null;
+    // Verify ownership first
+    const address = await this.getAddressById(addressId, userId);
+    if (!address) return false;
+
+    return await this.addressRepository.deleteAddress(addressId);
   }
 
   async setDefaultAddress(addressId: string, userId: string): Promise<IAddress | null> {
-    // Unset all defaults for this user
-    await AddressModel.updateMany({ userId }, { isDefault: false });
+    // Verify ownership first
+    const address = await this.getAddressById(addressId, userId);
+    if (!address) return null;
 
-    // Set the specified address as default
-    return AddressModel.findOneAndUpdate(
-      { _id: addressId, userId },
-      { isDefault: true },
-      { new: true }
-    );
+    return await this.addressRepository.setDefaultAddress(userId, addressId);
   }
 }
 

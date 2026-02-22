@@ -1,17 +1,9 @@
 import { Request, Response } from 'express';
-import Product from '../models/product.model';
+import productService from '../services/product.service';
+import { CreateProductDTO, UpdateProductDTO, ProductFilterDTO } from '../dtos/product.dtos';
+import { successResponse, errorResponse } from '../utils/response';
 
-/**
- * Get all active products with optional filtering
- * Query params:
- * - category: Filter by category (e.g., "Men", "Women")
- * - search: Search in name and description
- * - minPrice: Minimum price filter
- * - maxPrice: Maximum price filter
- * - tags: Comma-separated tags to filter by
- * - limit: Number of products to return (default: 50)
- * - page: Page number for pagination (default: 1)
- */
+
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const {
@@ -55,16 +47,17 @@ export const getProducts = async (req: Request, res: Response) => {
 
     const pageNum = Math.max(1, Number(page));
     const limitNum = Math.min(100, Math.max(1, Number(limit)));
-    const skip = (pageNum - 1) * limitNum;
 
-    const [products, total] = await Promise.all([
-      Product.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      Product.countDocuments(filter),
-    ]);
+    const products = await productService.getAllProducts({
+      category: category as string,
+      search: search as string,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      tags: tags ? (tags as string).split(',').map(t => t.trim()) : undefined,
+      isActive: true,
+      limit: limitNum,
+      page: pageNum - 1
+    });
 
     res.json({
       success: true,
@@ -72,8 +65,8 @@ export const getProducts = async (req: Request, res: Response) => {
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total,
-        pages: Math.ceil(total / limitNum),
+        total: products.length,
+        pages: Math.ceil(products.length / limitNum),
       },
     });
   } catch (error: any) {
@@ -92,7 +85,7 @@ export const getProductById = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
     
-    const product = await Product.findById(productId).lean();
+    const product = await productService.getProductById(productId);
 
     if (!product) {
       return res.status(404).json({
@@ -121,12 +114,7 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
   try {
     const { category } = req.params;
     
-    const products = await Product.find({
-      category: { $regex: new RegExp(category, 'i') },
-      isActive: true,
-    })
-      .sort({ createdAt: -1 })
-      .lean();
+    const products = await productService.getProductsByCategory(category);
 
     res.json({
       success: true,
@@ -146,7 +134,9 @@ export const getProductsByCategory = async (req: Request, res: Response) => {
  */
 export const getCategories = async (req: Request, res: Response) => {
   try {
-    const categories = await Product.distinct('category', { isActive: true });
+    // Get all products and extract unique categories
+    const products = await productService.getAllProducts({ isActive: true });
+    const categories = [...new Set(products.map(p => p.category))];
 
     res.json({
       success: true,
@@ -186,13 +176,13 @@ export const getPersonalizedProducts = async (req: Request, res: Response) => {
       }
     }
 
-    const products = await Product.find({
+    const products = await productService.getAllProducts({
       ...categoryFilter,
       isActive: true,
-    })
-      .sort({ createdAt: -1 })
-      .limit(Number(limit))
-      .lean();
+      limit: Number(limit),
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
+    } as any);
 
     res.json({
       success: true,

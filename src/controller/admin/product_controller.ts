@@ -1,197 +1,88 @@
 import { Request, Response } from 'express';
-import Product from '../../models/product.model';
+import productService from '../../services/product.service';
+import { successResponse, errorResponse } from '../../utils/response';
+import { CreateProductDTO, UpdateProductDTO } from '../../dtos/product.dtos';
 
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
-    const products = await Product.find().sort({ createdAt: -1 });
-    
-    res.json({
-      success: true,
-      data: products,
-    });
+    const {
+      page = 1,
+      limit = 20,
+      category,
+      search,
+      isActive
+    } = req.query;
+
+    const filter: any = {
+      page: Number(page) - 1,
+      limit: Number(limit)
+    };
+
+    if (category) filter.category = category as string;
+    if (search) filter.search = search as string;
+    if (isActive !== undefined) filter.isActive = isActive === 'true';
+
+    const products = await productService.getAllProducts(filter);
+
+    return successResponse(res, products);
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch products',
-      error: error.message,
-    });
+    return errorResponse(res, error.message);
   }
 };
 
 export const addProduct = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
+    const productData = req.body;
     
-    const {
-      name,
-      description,
-      price,
-      category,
-      subcategory,
-      stock,
-      discount,
-      tags,
-      sizes,
-      colors,
-    } = req.body;
+    // Handle uploaded images
+    if (req.files && Array.isArray(req.files)) {
+      productData.images = req.files.map((file: Express.Multer.File) => `/uploads/products/${file.filename}`);
+    }
 
-    // Handle images from upload
-    const images = (req.files as any[])?.map(file => `/uploads/products/${file.filename}`) || [];
+    const product = await productService.createProduct(productData);
 
-    // Parse comma-separated values
-    const parsedSizes = sizes ? (typeof sizes === 'string' ? sizes.split(',').map(s => s.trim()) : sizes) : [];
-    const parsedColors = colors ? (typeof colors === 'string' ? colors.split(',').map(c => c.trim()) : colors) : [];
-    const parsedTags = tags ? (typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags) : [];
-
-    const product = new Product({
-      name,
-      description,
-      price,
-      images,
-      category, // Men or Women
-      subcategory, // T-Shirts, Jeans, etc.
-      stock,
-      isActive: true,
-      sizes: parsedSizes,
-      colors: parsedColors,
-      discount: discount || 0,
-      tags: parsedTags,
-      createdBy: userId,
-    });
-
-    await product.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Product added successfully',
-      data: product,
-    });
+    return successResponse(res, product, 'Product created successfully', 201);
   } catch (error: any) {
-    console.error('Add product error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to add product',
-      error: error.message,
-    });
+    return errorResponse(res, error.message);
   }
 };
 
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
-    const { existingImages, imagesToRemove, ...updateData } = req.body;
+    const updateData = req.body;
 
-    // Get current product to handle images properly
-    const currentProduct = await Product.findById(productId);
-    if (!currentProduct) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
+    // Handle uploaded images
+    if (req.files && Array.isArray(req.files)) {
+      const newImages = req.files.map((file: Express.Multer.File) => `/uploads/products/${file.filename}`);
+      updateData.images = updateData.images 
+        ? [...updateData.images, ...newImages]
+        : newImages;
     }
 
-    // Handle images: keep existing, remove specified, add new
-    let finalImages: string[] = [];
-    
-    // Parse existing images (may come as JSON string or array)
-    let existingImagesArray: string[] = [];
-    if (existingImages) {
-      try {
-        existingImagesArray = typeof existingImages === 'string' 
-          ? JSON.parse(existingImages) 
-          : existingImages;
-      } catch {
-        existingImagesArray = Array.isArray(existingImages) ? existingImages : [];
-      }
+    const product = await productService.updateProduct(productId, updateData);
+
+    if (!product) {
+      return errorResponse(res, 'Product not found', 404);
     }
 
-    // Parse images to remove
-    let removeArray: string[] = [];
-    if (imagesToRemove) {
-      try {
-        removeArray = typeof imagesToRemove === 'string'
-          ? JSON.parse(imagesToRemove)
-          : imagesToRemove;
-      } catch {
-        removeArray = Array.isArray(imagesToRemove) ? imagesToRemove : [];
-      }
-    }
-
-    // Filter out removed images from existing
-    finalImages = existingImagesArray.filter(img => !removeArray.includes(img));
-
-    // Add new uploaded images
-    if (req.files && (req.files as any[]).length > 0) {
-      const newImages = (req.files as any[]).map(
-        file => `/uploads/products/${file.filename}`
-      );
-      finalImages = [...finalImages, ...newImages];
-    }
-
-    // Only update images if we have some or if explicitly clearing
-    if (finalImages.length > 0 || existingImages !== undefined) {
-      updateData.images = finalImages;
-    }
-
-    // Parse sizes and colors if they come as strings
-    if (updateData.sizes && typeof updateData.sizes === 'string') {
-      try {
-        updateData.sizes = JSON.parse(updateData.sizes);
-      } catch {
-        updateData.sizes = updateData.sizes.split(',').map((s: string) => s.trim()).filter(Boolean);
-      }
-    }
-    if (updateData.colors && typeof updateData.colors === 'string') {
-      try {
-        updateData.colors = JSON.parse(updateData.colors);
-      } catch {
-        updateData.colors = updateData.colors.split(',').map((c: string) => c.trim()).filter(Boolean);
-      }
-    }
-
-    const product = await Product.findByIdAndUpdate(
-      productId,
-      updateData,
-      { new: true }
-    );
-
-    res.json({
-      success: true,
-      message: 'Product updated successfully',
-      data: product,
-    });
+    return successResponse(res, product, 'Product updated successfully');
   } catch (error: any) {
-    console.error('Update product error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update product',
-      error: error.message,
-    });
+    return errorResponse(res, error.message);
   }
 };
 
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params;
+    const success = await productService.deleteProduct(productId);
 
-    const product = await Product.findByIdAndDelete(productId);
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found',
-      });
+    if (!success) {
+      return errorResponse(res, 'Product not found', 404);
     }
 
-    res.json({
-      success: true,
-      message: 'Product deleted successfully',
-    });
+    return successResponse(res, null, 'Product deleted successfully');
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete product',
-      error: error.message,
-    });
+    return errorResponse(res, error.message);
   }
 };

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import cartService from '../services/cart.service';
 import { successResponse, errorResponse } from '../utils/response';
+import { AddToCartDTO, UpdateCartItemDTO, RemoveFromCartDTO } from '../dtos/cart.dtos';
 
 export const getCart = async (req: Request, res: Response) => {
   try {

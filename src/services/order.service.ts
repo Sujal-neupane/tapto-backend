@@ -1,8 +1,19 @@
-import Order, {IOrder, IOrderItem, ITracking} from '../models/order.model';
-import Product from '../models/product.model';
-import { AddressModel } from '../models/address.model';
+import { IOrder, IOrderItem, ITracking } from '../models/order.model';
+import { OrderRepository } from '../repositories/order.repository';
+import { ProductRepository } from '../repositories/product.repository';
+import { AddressRepository } from '../repositories/address.repository';
 
 export class OrderService {
+    private orderRepository: OrderRepository;
+    private productRepository: ProductRepository;
+    private addressRepository: AddressRepository;
+
+    constructor() {
+        this.orderRepository = new OrderRepository();
+        this.productRepository = new ProductRepository();
+        this.addressRepository = new AddressRepository();
+    }
+
     async createOrder(data: {
     userId: string;
     items: Partial<IOrderItem>[];
@@ -14,7 +25,7 @@ export class OrderService {
     // Populate item details from products
     const populatedItems: IOrderItem[] = [];
     for (const item of data.items) {
-      const product = await Product.findById(item.productId);
+      const product = await this.productRepository.getProductById(item.productId!);
       if (!product) {
         throw new Error(`Product ${item.productId} not found`);
       }
@@ -33,7 +44,7 @@ export class OrderService {
     // Get shipping address details
     let finalShippingAddress = data.shippingAddress;
     if (data.addressId && !data.shippingAddress) {
-      const address = await AddressModel.findById(data.addressId);
+      const address = await this.addressRepository.getAddressById(data.addressId);
       if (!address) {
         throw new Error('Shipping address not found');
       }
@@ -59,7 +70,7 @@ export class OrderService {
     const trackingNumber = this.generateTrackingNumber();
 
     // Create order
-    const order = new Order({
+    const order = await this.orderRepository.createOrder({
       userId: data.userId,
       items: populatedItems,
       shippingAddress: finalShippingAddress,
@@ -78,9 +89,7 @@ export class OrderService {
           location: 'TapTo Online Platform',
         },
       ],
-    });
-
-    await order.save();
+    } as any);
 
     // Simulate order confirmation
     setTimeout(async () => {
@@ -91,15 +100,15 @@ export class OrderService {
   }
 
   async getMyOrders(userId: string): Promise<IOrder[]> {
-    return Order.find({ userId }).sort({ createdAt: -1 }).exec();
+    return this.orderRepository.getOrdersByUserId(userId);
   }
 
   async getOrderById(orderId: string): Promise<IOrder | null> {
-    return Order.findById(orderId).exec();
+    return this.orderRepository.getOrderById(orderId);
   }
 
   async updateOrderStatus(orderId: string, status: string): Promise<IOrder | null> {
-    const order = await Order.findById(orderId);
+    const order = await this.orderRepository.getOrderById(orderId);
     if (!order) return null;
 
     order.status = status as any;
@@ -162,12 +171,11 @@ export class OrderService {
       order.deliveredAt = new Date();
     }
 
-    await order.save();
-    return order;
+    return await this.orderRepository.updateOrder(orderId, order);
   }
 
   async trackOrder(orderId: string): Promise<any> {
-    const order = await Order.findById(orderId);
+    const order = await this.orderRepository.getOrderById(orderId);
     if (!order) throw new Error('Order not found');
 
     // Boudha Stupa coordinates as destination
@@ -209,7 +217,7 @@ export class OrderService {
         }
       }
       
-      await order.save();
+      await this.orderRepository.updateOrder(orderId, order);
     }
 
     // Calculate distance and ETA based on current location
@@ -251,7 +259,7 @@ export class OrderService {
   }
 
   async cancelOrder(orderId: string, reason: string): Promise<IOrder | null> {
-    const order = await Order.findById(orderId);
+    const order = await this.orderRepository.getOrderById(orderId);
     if (!order) return null;
 
     if (['delivered', 'cancelled'].includes(order.status)) {
@@ -267,22 +275,11 @@ export class OrderService {
       location: 'System',
     } as any);
 
-    await order.save();
-    return order;
+    return await this.orderRepository.updateOrder(orderId, order);
   }
 
   async updateLiveLocation(orderId: string, lat: number, lng: number): Promise<IOrder | null> {
-    const order = await Order.findById(orderId);
-    if (!order) return null;
-
-    order.liveLocation = {
-      lat,
-      lng,
-      lastUpdated: new Date(),
-    };
-
-    await order.save();
-    return order;
+    return await this.orderRepository.updateLiveLocation(orderId, { lat, lng });
   }
 
   private generateTrackingNumber(): string {
