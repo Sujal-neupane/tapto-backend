@@ -37,7 +37,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
 
     if (search) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
+        { fullName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } }
       ];
     }
@@ -55,13 +55,15 @@ export const getAllUsers = async (req: Request, res: Response) => {
       UserModel.countDocuments(query)
     ]);
 
-    return successResponse(res, {
-      users,
+    const totalPages = Math.ceil(total / limitNum);
+    return successResponse(res, users, undefined, 200, {
       pagination: {
         page: pageNum,
         limit: limitNum,
         total,
-        pages: Math.ceil(total / limitNum)
+        totalPages,
+        hasNext: pageNum < totalPages,
+        hasPrev: pageNum > 1
       }
     });
   } catch (error: any) {

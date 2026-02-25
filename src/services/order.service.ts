@@ -2,6 +2,7 @@ import { IOrder, IOrderItem, ITracking } from '../models/order.model';
 import { OrderRepository } from '../repositories/order.repository';
 import { ProductRepository } from '../repositories/product.repository';
 import { AddressRepository } from '../repositories/address.repository';
+import { UserModel } from '../models/user.model';
 
 export class OrderService {
     private orderRepository: OrderRepository;
@@ -100,15 +101,61 @@ export class OrderService {
   }
 
   async getMyOrders(userId: string): Promise<IOrder[]> {
-    return this.orderRepository.getOrdersByUserId(userId);
+    const orders = await this.orderRepository.getOrdersByUserId(userId);
+    return this.hydrateUsers(orders);
   }
 
   async getAllOrders(filter?: any): Promise<IOrder[]> {
-    return this.orderRepository.getAllOrders(filter);
+    const orders = await this.orderRepository.getAllOrders(filter);
+    return this.hydrateUsers(orders);
   }
 
   async getOrderById(orderId: string): Promise<IOrder | null> {
-    return this.orderRepository.getOrderById(orderId);
+    const order = await this.orderRepository.getOrderById(orderId);
+    if (!order) return null;
+    return await this.hydrateUser(order);
+  }
+
+  private async hydrateUsers(orders: IOrder[]): Promise<any[]> {
+    return Promise.all(orders.map((order) => this.hydrateUser(order)));
+  }
+
+  private async hydrateUser(order: IOrder): Promise<any> {
+    // Convert Mongoose document to plain object for proper serialization
+    const plainOrder = order.toObject?.() || JSON.parse(JSON.stringify(order));
+    const currentUser = plainOrder.userId;
+
+    if (currentUser && typeof currentUser === 'object') {
+      const fullName = currentUser.fullName || currentUser.name;
+      plainOrder.userId = {
+        _id: currentUser._id,
+        name: fullName,
+        fullName,
+        email: currentUser.email,
+      };
+      return plainOrder;
+    }
+
+    if (typeof currentUser === 'string') {
+      const user = await UserModel.findById(currentUser).select('fullName email').lean();
+      if (user) {
+        plainOrder.userId = {
+          _id: user._id,
+          name: user.fullName,
+          fullName: user.fullName,
+          email: user.email,
+        };
+      } else {
+        plainOrder.userId = {
+          _id: currentUser,
+          name: 'Unknown User',
+          fullName: 'Unknown User',
+          email: 'N/A',
+        };
+      }
+    }
+
+    return plainOrder;
   }
 
   async updateOrderStatus(orderId: string, status: string): Promise<IOrder | null> {

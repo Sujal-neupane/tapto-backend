@@ -21,15 +21,13 @@ export class OrderRepository implements IOrderRepository {
     }
 
     async getOrderById(id: string): Promise<IOrder | null> {
-        return await OrderModel.findById(id)
-            .populate('userId', 'name email')
-            .populate('items.productId');
+        return await OrderModel.findById(id).lean() as any;
     }
 
     async getOrdersByUserId(userId: string): Promise<IOrder[]> {
         return await OrderModel.find({ userId })
             .sort({ createdAt: -1 })
-            .populate('items.productId');
+            .lean() as any;
     }
 
     async getAllOrders(filter?: OrderFilter): Promise<IOrder[]> {
@@ -47,8 +45,7 @@ export class OrderRepository implements IOrderRepository {
             .sort({ createdAt: -1 })
             .limit(filter?.limit || 100)
             .skip((filter?.page || 0) * (filter?.limit || 100))
-            .populate('userId', 'name email')
-            .populate('items.productId');
+            .lean() as any;
     }
 
     async updateOrder(id: string, updateData: Partial<IOrder>): Promise<IOrder | null> {
@@ -79,7 +76,7 @@ export class OrderRepository implements IOrderRepository {
     async getOrdersByStatus(status: string): Promise<IOrder[]> {
         return await OrderModel.find({ status })
             .sort({ createdAt: -1 })
-            .populate('userId', 'name email');
+            .lean() as any;
     }
 
     async assignDriver(orderId: string, driverData: any): Promise<IOrder | null> {
