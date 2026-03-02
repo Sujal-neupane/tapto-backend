@@ -1,48 +1,39 @@
 import { Request, Response } from 'express';
-import { UserActivityService } from '../../services/user-activity.service';
+import { UserActivityModel } from '../../models/user-activity.model';
+import { successResponse, errorResponse } from '../../utils/response';
 
-const userActivityService = new UserActivityService();
-
-// User Activity Management
 export const getAllActivities = async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 20, userId, action, startDate, endDate } = req.query;
+    const { page = 1, limit = 20, userId, activityType } = req.query;
+    const query: any = {};
 
-    const pageNum = parseInt(page as string, 10);
-    const limitNum = parseInt(limit as string, 10);
+    if (userId) query.userId = userId;
+    if (activityType) query.activityType = activityType;
 
-    const start = startDate ? new Date(startDate as string) : undefined;
-    const end = endDate ? new Date(endDate as string) : undefined;
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
 
-    const result = await userActivityService.getAllActivities(
-      pageNum,
-      limitNum,
-      userId as string,
-      action as string,
-      start,
-      end
-    );
+    const [activities, total] = await Promise.all([
+      UserActivityModel.find(query)
+        .populate('userId', 'name email')
+        .skip(skip)
+        .limit(limitNum)
+        .sort({ createdAt: -1 }),
+      UserActivityModel.countDocuments(query)
+    ]);
 
-    const totalPages = Math.ceil(result.total / limitNum);
-
-    res.json({
-      success: true,
-      data: result.activities,
+    return successResponse(res, {
+      activities,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: result.total,
-        totalPages,
-        hasNext: pageNum < totalPages,
-        hasPrev: pageNum > 1,
-      },
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch activities',
-      error: error.message,
-    });
+    return errorResponse(res, error.message);
   }
 };
 
@@ -51,47 +42,53 @@ export const getUserActivities = async (req: Request, res: Response) => {
     const { userId } = req.params;
     const { page = 1, limit = 20 } = req.query;
 
-    const pageNum = parseInt(page as string, 10);
-    const limitNum = parseInt(limit as string, 10);
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
 
-    const result = await userActivityService.getUserActivities(userId, pageNum, limitNum);
+    const [activities, total] = await Promise.all([
+      UserActivityModel.find({ userId })
+        .skip(skip)
+        .limit(limitNum)
+        .sort({ createdAt: -1 }),
+      UserActivityModel.countDocuments({ userId })
+    ]);
 
-    const totalPages = Math.ceil(result.total / limitNum);
-
-    res.json({
-      success: true,
-      data: result.activities,
+    return successResponse(res, {
+      activities,
       pagination: {
         page: pageNum,
         limit: limitNum,
-        total: result.total,
-        totalPages,
-        hasNext: pageNum < totalPages,
-        hasPrev: pageNum > 1,
-      },
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch user activities',
-      error: error.message,
-    });
+    return errorResponse(res, error.message);
   }
 };
 
 export const getActivityStats = async (req: Request, res: Response) => {
   try {
-    const stats = await userActivityService.getActivityStats();
+    const stats = await UserActivityModel.aggregate([
+      {
+        $group: {
+          _id: '$activityType',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ]);
 
-    res.json({
-      success: true,
-      data: stats,
+    const totalActivities = await UserActivityModel.countDocuments();
+
+    return successResponse(res, {
+      stats,
+      totalActivities
     });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch activity stats',
-      error: error.message,
-    });
+    return errorResponse(res, error.message);
   }
 };

@@ -1,45 +1,47 @@
 import { Request, Response } from 'express';
-import Order from '../../models/order.model';
-import DeliveryDriver from '../../models/delivery_driver.model';
+import driverService from '../../services/driver.service';
+import orderService from '../../services/order.service';
+import { successResponse, errorResponse } from '../../utils/response';
 
-// Admin: Assign a delivery driver to an order
 export const assignDriverToOrder = async (req: Request, res: Response) => {
   try {
     const { orderId } = req.params;
     const { driverId } = req.body;
 
     if (!driverId) {
-      return res.status(400).json({ success: false, message: 'Driver ID is required' });
+      return errorResponse(res, 'Driver ID is required', 400);
     }
 
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
-    }
-
-    const driver = await DeliveryDriver.findById(driverId);
+    // Get driver details
+    const driver = await driverService.getDriverById(driverId);
     if (!driver) {
-      return res.status(404).json({ success: false, message: 'Driver not found' });
+      return errorResponse(res, 'Driver not found', 404);
     }
 
-    // Assign driver info to order.deliveryPerson
-    order.deliveryPerson = {
+    // Get order
+    const order = await orderService.getOrderById(orderId);
+    if (!order) {
+      return errorResponse(res, 'Order not found', 404);
+    }
+
+    // Update order with driver information
+    const driverData = {
+      id: driver._id,
       name: driver.name,
       phone: driver.phone,
       vehicle: driver.vehicleNumber,
-      rating: 5, // Default or fetch from reviews if available
-      driverId: driver._id.toString(),
-      avatarUrl: driver.avatarUrl,
+      rating: 4.5, // You might want to add rating to the driver model
+      avatarUrl: driver.avatarUrl
     };
 
-    await order.save();
+    // Assign the driver to the order
+    await orderService.assignDriver(orderId, driverData);
+    
+    // Update order status to outForDelivery
+    const updatedOrder = await orderService.updateOrderStatus(orderId, 'outForDelivery');
 
-    return res.json({
-      success: true,
-      message: 'Driver assigned to order',
-      data: order,
-    });
+    return successResponse(res, updatedOrder, 'Driver assigned successfully');
   } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message });
+    return errorResponse(res, error.message);
   }
 };
