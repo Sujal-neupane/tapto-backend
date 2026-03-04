@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Application, NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import authRoutes from './routes/auth.route';
@@ -20,6 +20,9 @@ import { CORS_ORIGIN, NODE_ENV } from './config';
 
 const app: Application = express();
     
+
+// Disable ETag for API responses to prevent 304 caching issues
+app.disable('etag');
 
 // Security middleware
 app.use(helmet());
@@ -88,9 +91,16 @@ app.use((req: Request, res: Response) => {
 });
 
 // Global error handling middleware
-app.use((err: any, req: Request, res: Response) => {
-    const statusCode = err.statusCode || 500;
-    const message = err.message || 'Internal Server Error';
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    const isMulterError = err?.name === 'MulterError';
+    const statusCode = isMulterError ? 400 : (err.statusCode || 500);
+    let message = isMulterError
+        ? (err.message || 'File upload error')
+        : (err.message || 'Internal Server Error');
+
+    if (isMulterError && err?.code === 'LIMIT_FILE_SIZE') {
+        message = 'Image file too large. Maximum allowed size is 15MB per image.';
+    }
     
     console.error('Error:', err);
     

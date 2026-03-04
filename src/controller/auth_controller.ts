@@ -168,7 +168,10 @@ export class AuthController {
                     message: parsedData.error.issues
                 });
             }
-            const updateData: UpdateUserDTO = parsedData.data;
+            const updateData: any = { ...parsedData.data };
+            delete updateData.role;
+            delete updateData.password;
+            delete updateData.email;
             const updatedUser = await userService.updateUser(userId, updateData);
             return res.status(200).json({
                 success: true,
@@ -190,6 +193,9 @@ export class AuthController {
             try {
                 const userId = req.params.id;
                 let updateData: any = req.body;
+                delete updateData.role;
+                delete updateData.password;
+                delete updateData.email;
                 if (req.file) {
                     const normalizedFile = await normalizeUploadedImage(req.file);
                     updateData.profilePicture = `/uploads/users/${normalizedFile.filename}`;

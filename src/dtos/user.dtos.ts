@@ -6,7 +6,6 @@ export const CreateUserDTO = z.object({
     fullName: z.string(),
     email: z.string().email(),
     password: z.string().min(1), // Allow any password length
-    role: z.enum(["user", "admin"]).optional(),
     shoppingPreference: z.enum(["Mens Fashion", "Womens Fashion"]).optional(),
     phoneNumber: z.string().optional(),
     country: z.string().optional(),
@@ -19,5 +18,7 @@ export const LoginUserDTO = z.object({
 });
 export type LoginUserDTO = z.infer<typeof LoginUserDTO>;
 
-export const UpdateUserDTO = UserSchema.partial(); // all optional
+export const UpdateUserDTO = UserSchema
+    .omit({ role: true, password: true, email: true })
+    .partial();
 export type UpdateUserDTO = z.infer<typeof UpdateUserDTO>;

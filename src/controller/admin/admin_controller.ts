@@ -32,7 +32,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = 1, limit = 10, search, role } = req.query;
     const query: any = {};
 
     if (search) {
@@ -40,6 +40,10 @@ export const getAllUsers = async (req: Request, res: Response) => {
         { fullName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    if (role && role !== 'all') {
+      query.role = role;
     }
 
     const pageNum = Number(page);

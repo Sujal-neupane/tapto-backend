@@ -60,7 +60,12 @@ export const getOrderById = async (req: Request, res: Response) => {
         };
       }
     }
-    return successResponse(res, { ...order.toObject(), driverInfo });
+    const normalizedOrder =
+      typeof (order as any).toObject === 'function'
+        ? (order as any).toObject()
+        : order;
+
+    return successResponse(res, { ...normalizedOrder, driverInfo });
   } catch (error: any) {
     return errorResponse(res, error.message);
   }

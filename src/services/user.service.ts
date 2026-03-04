@@ -23,21 +23,20 @@ export class UserService {
       fullName: userData.fullName,
       shoppingPreference: userData.shoppingPreference,
       phoneNumber: userData.phoneNumber,
-      role: userData.role || 'user', // Default to 'user'
+      role: 'user',
       profilePicture: userData.profilePicture || '', // ADD PROFILE PICTURE
       country: userData.country, // ADD COUNTRY
     });
 
     await user.save();
 
-    //  Include role in JWT token
     const token = jwt.sign(
       { 
         id: user._id.toString(),
         email: user.email,
-        role: user.role //  ADD ROLE TO TOKEN
+        role: user.role
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      JWT_SECRET,
       { expiresIn: '30d' }
     );
 
@@ -71,14 +70,13 @@ export class UserService {
       throw { statusCode: 401, message: 'Invalid credentials' };
     }
 
-    //  Include role in JWT token
     const token = jwt.sign(
       { 
         id: user._id.toString(),
         email: user.email,
-        role: user.role //  ADD ROLE TO TOKEN
+        role: user.role
       },
-      process.env.JWT_SECRET || 'your-secret-key',
+      JWT_SECRET,
       { expiresIn: '30d' }
     );
 

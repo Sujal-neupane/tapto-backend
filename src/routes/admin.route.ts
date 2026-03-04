@@ -58,18 +58,30 @@ const storage = multer.diskStorage({
   },
 });
 
+const MAX_PRODUCT_IMAGE_SIZE_MB = 15;
+
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: MAX_PRODUCT_IMAGE_SIZE_MB * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const allowedExt = ['.jpeg', '.jpg', '.png', '.webp', '.jfif'];
+    const allowedMime = [
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/jfif',
+    ];
+    const ext = path.extname(file.originalname).toLowerCase();
+    const extname = allowedExt.includes(ext);
+    const mimetype = allowedMime.includes(file.mimetype.toLowerCase());
 
     if (extname && mimetype) {
       cb(null, true);
     } else {
-      cb(new Error('Only images are allowed'));
+      const err: any = new Error('Only images are allowed (jpeg, jpg, png, webp, jfif)');
+      err.statusCode = 400;
+      cb(err);
     }
   },
 });
