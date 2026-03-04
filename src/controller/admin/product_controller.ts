@@ -32,18 +32,77 @@ export const getAllProducts = async (req: Request, res: Response) => {
 
 export const addProduct = async (req: Request, res: Response) => {
   try {
-    const productData = req.body;
-    
-    // Handle uploaded images
-    if (req.files && Array.isArray(req.files)) {
-      productData.images = req.files.map((file: Express.Multer.File) => `/uploads/products/${file.filename}`);
+    const authUser = (req as any).user;
+    const createdBy = authUser?.id || authUser?.userId;
+
+    if (!createdBy) {
+      return errorResponse(res, 'Unauthorized', 401);
     }
 
+    const { name, description, price, category, stock, discount } = req.body;
+
+    // Validate required fields
+    if (!name || !price || !category) {
+      return errorResponse(
+        res,
+        'Missing required fields: name, price, category',
+        400
+      );
+    }
+
+    // Validate price is a valid number
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      return errorResponse(
+        res,
+        'Price must be a valid positive number',
+        400
+      );
+    }
+
+    // Check if images were uploaded
+    if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
+      return errorResponse(
+        res,
+        'At least one product image is required',
+        400
+      );
+    }
+
+    // Prepare product data
+    const productData: any = {
+      name: name.trim(),
+      description: (description || '').trim(),
+      price: parsedPrice,
+      category: category.trim(),
+      stock: parseInt(stock) || 0,
+      discount: parseFloat(discount) || 0,
+      createdBy,
+    };
+
+    // Handle uploaded images
+    if (req.files && Array.isArray(req.files)) {
+      productData.images = req.files.map(
+        (file: Express.Multer.File) => `/uploads/products/${file.filename}`
+      );
+    }
+
+    console.log('Creating product with data:', productData);
     const product = await productService.createProduct(productData);
 
-    return successResponse(res, product, 'Product created successfully', 201);
+    return successResponse(
+      res,
+      product,
+      'Product created successfully',
+      201
+    );
   } catch (error: any) {
-    return errorResponse(res, error.message);
+    console.error('Product creation error:', error);
+    return errorResponse(
+      res,
+      error.message || 'Failed to create product',
+      500
+    );
   }
 };
 
@@ -52,14 +111,50 @@ export const updateProduct = async (req: Request, res: Response) => {
     const { productId } = req.params;
     const updateData = req.body;
 
-    // Handle uploaded images
-    if (req.files && Array.isArray(req.files)) {
-      const newImages = req.files.map((file: Express.Multer.File) => `/uploads/products/${file.filename}`);
-      updateData.images = updateData.images 
+    // Validate productId
+    if (!productId) {
+      return errorResponse(res, 'Product ID is required', 400);
+    }
+
+    // Validate and parse numeric fields if provided
+    if (updateData.price !== undefined) {
+      const parsedPrice = parseFloat(updateData.price);
+      if (isNaN(parsedPrice) || parsedPrice < 0) {
+        return errorResponse(
+          res,
+          'Price must be a valid positive number',
+          400
+        );
+      }
+      updateData.price = parsedPrice;
+    }
+
+    if (updateData.stock !== undefined) {
+      updateData.stock = parseInt(updateData.stock);
+      if (isNaN(updateData.stock)) {
+        return errorResponse(res, 'Stock must be a valid number', 400);
+      }
+    }
+
+    if (updateData.discount !== undefined) {
+      updateData.discount = parseFloat(updateData.discount);
+      if (isNaN(updateData.discount)) {
+        return errorResponse(res, 'Discount must be a valid number', 400);
+      }
+    }
+
+    // Handle new uploaded images
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      const newImages = req.files.map(
+        (file: Express.Multer.File) => `/uploads/products/${file.filename}`
+      );
+      // Merge with existing images if any
+      updateData.images = updateData.images
         ? [...updateData.images, ...newImages]
         : newImages;
     }
 
+    console.log('Updating product:', productId, updateData);
     const product = await productService.updateProduct(productId, updateData);
 
     if (!product) {
@@ -68,7 +163,12 @@ export const updateProduct = async (req: Request, res: Response) => {
 
     return successResponse(res, product, 'Product updated successfully');
   } catch (error: any) {
-    return errorResponse(res, error.message);
+    console.error('Product update error:', error);
+    return errorResponse(
+      res,
+      error.message || 'Failed to update product',
+      500
+    );
   }
 };
 

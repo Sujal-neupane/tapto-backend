@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserModel } from '../models/user.model';
+import { JWT_SECRET } from '../config';
 
 export const adminAuth = async (
   req: Request,
@@ -24,11 +25,12 @@ export const adminAuth = async (
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
     const user = await UserModel.findById(decoded.id);
 
-    // FIX: Check role, not isAdmin
-    if (!user || user.role !== 'admin') {
+    const isAdmin = user?.role === 'admin' || decoded?.role === 'admin';
+
+    if (!user || !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Admin access required',
