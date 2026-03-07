@@ -23,6 +23,12 @@ describe('Product Management Integration Tests', () => {
         role: 'admin'
       });
 
+    await UserModel.findOneAndUpdate(
+      { email: 'productadmin@example.com' },
+      { $set: { role: 'admin' } },
+      { new: true }
+    );
+
     adminToken = adminResponse.body.token;
     userId = adminResponse.body.data.id;
   });

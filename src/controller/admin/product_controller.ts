@@ -3,6 +3,36 @@ import productService from '../../services/product.service';
 import { successResponse, errorResponse } from '../../utils/response';
 import { CreateProductDTO, UpdateProductDTO } from '../../dtos/product.dtos';
 
+const normalizeImagePaths = (value: any): string[] => {
+  const collect = (input: any): string[] => {
+    if (input === undefined || input === null) return [];
+
+    if (Array.isArray(input)) {
+      return input.flatMap((item) => collect(item));
+    }
+
+    if (typeof input === 'string') {
+      const trimmed = input.trim();
+      if (!trimmed) return [];
+
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          return collect(parsed);
+        } catch {
+          return [trimmed];
+        }
+      }
+
+      return [trimmed];
+    }
+
+    return [];
+  };
+
+  return Array.from(new Set(collect(value)));
+};
+
 export const getAllProducts = async (req: Request, res: Response) => {
   try {
     const {
@@ -143,16 +173,22 @@ export const updateProduct = async (req: Request, res: Response) => {
       }
     }
 
-    // Handle new uploaded images
+    const existingImagesRaw = (req.body as any).existingImages;
+    const existingImages = normalizeImagePaths(existingImagesRaw);
+
+    // Handle uploaded images and explicit existing images list from frontend
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
       const newImages = req.files.map(
         (file: Express.Multer.File) => `/uploads/products/${file.filename}`
       );
-      // Merge with existing images if any
-      updateData.images = updateData.images
-        ? [...updateData.images, ...newImages]
-        : newImages;
+      updateData.images = [...existingImages, ...newImages];
+    } else if (existingImagesRaw !== undefined) {
+      updateData.images = existingImages;
+    } else if (updateData.images !== undefined) {
+      updateData.images = normalizeImagePaths(updateData.images);
     }
+
+    delete (updateData as any).existingImages;
 
     console.log('Updating product:', productId, updateData);
     const product = await productService.updateProduct(productId, updateData);

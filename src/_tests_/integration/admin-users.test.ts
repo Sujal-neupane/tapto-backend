@@ -35,6 +35,12 @@ describe("Admin User Management Integration Tests", () => {
             .post("/api/auth/register")
             .send(adminUser);
 
+        await UserModel.findOneAndUpdate(
+            { email: adminUser.email },
+            { $set: { role: "admin" } },
+            { new: true }
+        );
+
         adminToken = adminResponse.body.token;
 
         // Create regular user

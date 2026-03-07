@@ -42,6 +42,12 @@ describe('Order Management Integration Tests', () => {
         shoppingPreference: 'Womens Fashion',
         role: 'admin'
       });
+
+    await UserModel.findOneAndUpdate(
+      { email: 'orderadmin@example.com' },
+      { $set: { role: 'admin' } },
+      { new: true }
+    );
     
     adminToken = adminResponse.body.token;
 

@@ -95,6 +95,7 @@ router.delete('/users/:id', adminController.deleteUser);
 router.get('/products', getAllProducts);
 router.post('/products', upload.array('images', 5), addProduct);
 router.put('/products/:productId', upload.array('images', 5), updateProduct);
+router.patch('/products/:productId', upload.array('images', 5), updateProduct);
 router.delete('/products/:productId', deleteProduct);
 
 // Orders
