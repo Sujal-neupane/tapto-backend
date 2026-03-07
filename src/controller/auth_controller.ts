@@ -161,6 +161,12 @@ export class AuthController {
                     {success: false, message: 'Unauthorized'}
                 );
             }
+            if (req.body?.email !== undefined || req.body?.password !== undefined || req.body?.role !== undefined) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'email, password, and role cannot be updated from this endpoint'
+                });
+            }
             const parsedData = UpdateUserDTO.safeParse(req.body);
             if (!parsedData.success) {
                 return res.status(400).json({
